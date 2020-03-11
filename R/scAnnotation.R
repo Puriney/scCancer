@@ -164,6 +164,15 @@ prepareSeurat <- function(dataPath, statPath, savePath,
 
     message("[", Sys.time(), "] -----: highly variable genes")
     expr <- FindVariableFeatures(expr, selection.method = "vst", nfeatures = 2000, verbose = F)
+    hvg_avg_good_range <- quantile(HVFInfo(expr)$mean, probs=c(5/100, 95/100))
+    hvg_std_var_good_min <- quantile(HVFInfo(expr)[, 'variance.standardized'], .75)
+
+    is_hvg_avg <- HVFInfo(expr)$mean >= hvg_avg_good_range[1] & HVFInfo(expr)$mean <= hvg_avg_good_range[2]
+    is_hvg_var <- HVFInfo(expr)[, 'variance.standardized'] >= hvg_std_var_good_min
+    is_hvg_poiss <- HVFInfo(expr)$variance.standardized > HVFInfo(expr)$mean
+    is_hvg <- c(is_hvg_avg & is_hvg_var & is_hvg_poiss)
+    hvg <- rownames(HVFInfo(expr))[is_hvg]
+    VariableFeatures(expr) <- hvg
 
     message("[", Sys.time(), "] -----: data scaling")
     expr <- ScaleData(object = expr,
